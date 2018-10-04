@@ -1,0 +1,63 @@
+vehiculos={
+	"_id":objectId,
+	"placa":string,
+	"chofer":{
+		"nombre":string,
+		"foto":objectId(GridFS)
+	},
+	"proveedores":[{
+		"nombre":string,
+		"location":{
+			"coordinates":[0,0],
+			"type": "Point"
+		},	
+		"horario":{
+			"apertura":date,
+			"clausura":date
+		},
+		"articulos":[{
+			"nombre":string,
+			"descripcion":string,
+			"tamanno":string,
+			"tipo":string,
+			"cantidad":int,
+			"precio":{
+				"valor":double,
+				"moneda":string
+			},
+			"enabled":boolean,
+			"fotos":[objectId(GridFS)] 
+		}]
+	}],
+	"areaDeAlcance":{
+		"type": "Polygon",
+		"coordinates": [
+			[ [ 0 , 0 ] , [ 3 , 6 ] , [ 6 , 1 ] , [ 0 , 0 ] ],
+			[ [ 2 , 2 ] , [ 3 , 3 ] , [ 4 , 2 ] , [ 2 , 2 ] ]
+		]
+	},
+
+	"paradas":[{
+		"location":{
+			"coordinates":[0,0],
+			"type": "Point"
+		},
+		"detalle":string,
+		"realizado":boolean,
+		"ruta":boolean
+	}]	
+}
+
+Logs={
+  "_id": objectId, 
+  "Type": string, 
+  "Source": string, 
+  "Level": int  , 
+  "Descripcion": string, 
+  "Computer": string, 
+  "User": string, 
+  "IP": string, 
+  "Checksum": string, 
+  "Details": string, 
+}
+

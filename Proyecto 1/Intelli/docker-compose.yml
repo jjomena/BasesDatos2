@@ -1,0 +1,276 @@
+version: "3.1"
+services:
+
+
+  #######################
+  ##  Cassandra nodes  ##
+  #######################
+  odin:
+    container_name: odin
+    image: cassandra
+    networks:
+      cassnet:
+        ipv4_address: 10.0.0.34
+    ports:
+    - "9042:9042"   # Native transport
+    - "7199:7199"   # JMX
+    - "9160:9160" # Thrift clients
+  vili:
+    container_name: vili
+    image: cassandra
+    command: /bin/bash -c "echo ' -- Pausing to let system catch up ... -->' && sleep 30 && /docker-entrypoint.sh cassandra -f"
+    environment:
+      - CASSANDRA_SEEDS=10.0.0.34
+    networks:
+      cassnet:
+        ipv4_address: 10.0.0.35
+    depends_on:
+    - odin
+  frigg:
+    container_name: frigg
+    image: cassandra
+    command: /bin/bash -c "echo ' -- Pausing to let system catch up ... -->' && sleep 80 && /docker-entrypoint.sh cassandra -f"
+    environment:
+      - CASSANDRA_SEEDS=10.0.0.34
+    networks:
+      cassnet:
+        ipv4_address: 10.0.0.36
+    depends_on:
+    - odin
+
+  ######################
+  ##  MongoDB Config  ##
+  #####################
+
+  chronus:
+    container_name: chronus
+    image: mongo
+    command: mongod --configsvr --replSet "configserver" --smallfiles
+
+    expose: #--dbpath /data/configdb #--port 27019
+      - "27019"
+    volumes:
+      - ./scripts:/jss
+    networks:
+       mongonet:
+        ipv4_address: 10.0.0.5
+    depends_on:
+      - rhea
+      - demeter
+
+  rhea:
+    container_name: rhea
+    image: mongo
+    command: mongod --configsvr --replSet "configserver" --smallfiles #--dbpath /data/configdb #--port 27019
+    #ports:
+    #  - "27018:27019"
+    expose:
+      - "27019"
+    networks:
+       mongonet:
+        ipv4_address: 10.0.0.6
+
+  demeter:
+    container_name: demeter
+    image: mongo
+    command: mongod --configsvr --replSet "configserver" --smallfiles #--dbpath /data/configdb #--port 27019
+    #ports:
+    #  - "27018:27019"
+    expose:
+    - "27019"
+    networks:
+      mongonet:
+        ipv4_address: 10.0.0.7
+  ######################
+  ##  MongoDB Nodes  ##
+  #####################
+
+  ## Ciudad 1
+  hades:
+    container_name: hades
+    image: mongo
+    command: mongod --shardsvr --replSet ciudad1   --smallfiles #--port 27018
+    #ports:
+    #- "27018:27018" #Todo: Preguntarle al profe si es necesario publicar todos los puertos, xq como todos los containers estan en la misma red, estos se pueden comunicar entre si sin publicar, el unico que tiene que ser publico son los routers (para poder accesarlo)
+    volumes:
+      - ./scripts:/jss
+    networks:
+     mongonet:
+        ipv4_address: 10.0.0.8
+    depends_on:
+      - apollo
+      - arthemis
+  apollo:
+    container_name: apollo
+    image: mongo
+    command: mongod --shardsvr --replSet ciudad1  --smallfiles #--port 27018
+    #ports:
+    #- "27018:27018"
+    networks:
+     mongonet:
+        ipv4_address: 10.0.0.11
+  arthemis:
+    container_name: arthemis
+    image: mongo
+    command: mongod --shardsvr --replSet ciudad1  --smallfiles #--port 27018
+    #ports:
+    #- "27018:27018"
+    networks:
+     mongonet:
+        ipv4_address: 10.0.0.14
+
+  ## Ciudad 2
+  poseidon:
+    container_name: poseidon
+    image: mongo
+    command: mongod --shardsvr --replSet ciudad2  --smallfiles #--port 27018
+    #ports:
+    #- "27018:27018"
+    volumes:
+      - ./scripts:/jss
+    networks:
+     mongonet:
+        ipv4_address: 10.0.0.9
+    depends_on:
+      - atlas
+      - prometheus
+  atlas:
+    container_name: atlas
+    image: mongo
+    command: mongod --shardsvr --replSet ciudad2 --smallfiles #--port 27018
+    #ports:
+    #- "27018:27018"
+    networks:
+     mongonet:
+        ipv4_address: 10.0.0.12
+  prometheus:
+    container_name: prometheus
+    image: mongo
+    command: mongod --shardsvr --replSet ciudad2 --smallfiles #--port 27018
+    #ports:
+    #- "27018:27018"
+    networks:
+     mongonet:
+        ipv4_address: 10.0.0.15
+
+  ## Ciudad 3
+  zeus:
+    container_name: zeus
+    image: mongo
+    command: mongod --shardsvr --replSet ciudad3 --smallfiles #--port 27018
+    #ports:
+    #- "27018:27018"
+    volumes:
+      - ./scripts:/jss
+    networks:
+     mongonet:
+        ipv4_address: 10.0.0.10
+    depends_on:
+      - maia
+      - leto
+  maia:
+    container_name: maia
+    image: mongo
+    command: mongod --shardsvr --replSet ciudad3 --smallfiles #--port 27018
+    #ports:
+    #- "27018:27018"
+    networks:
+     mongonet:
+        ipv4_address: 10.0.0.13
+  leto:
+    container_name: leto
+    image: mongo
+    command: mongod --shardsvr --replSet ciudad3 --smallfiles #--port 27018
+    #ports:
+    #- "27018:27018"
+    networks:
+     mongonet:
+        ipv4_address: 10.0.0.16
+
+  ########################
+  ##  MongoDB Routers  ##
+  #######################
+
+  uranus:
+    container_name: uranus
+    image: mongo
+    command: mongos --port 27017 --configdb "configserver"/chronus:27019,rhea:27019
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./scripts:/jss
+    networks:
+     mongonet:
+      ipv4_address: 10.0.0.2
+    depends_on:
+    - chronus
+    - rhea
+    - hades
+    - apollo
+    - arthemis
+    - poseidon
+    - atlas
+    - prometheus
+    - zeus
+    - maia
+    - leto
+  gaea:
+    container_name: gaea
+    image: mongo
+    command: mongos --port 27017 --configdb "configserver"/chronus:27019,rhea:27019
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./scripts:/jss
+    networks:
+     mongonet:
+      ipv4_address: 10.0.0.3
+    depends_on:
+    - chronus
+    - rhea
+    - hades
+    - apollo
+    - arthemis
+    - poseidon
+    - atlas
+    - prometheus
+    - zeus
+    - maia
+    - leto
+
+  ###############
+  ##  Node.JS  ##
+  ###############
+  #node:
+  #  container_name: fortuna
+  #  image: "node"
+  #  user: "node"
+  #  working_dir: /home/node/app
+  #  environment:
+  #    - NODE_ENV=production
+  #    - MONGO01= "10.0.0.2"
+  #    - MONGO02= "10.0.0.3"
+  #  volumes:
+  #    - ./:/home/node/app
+  #  expose:
+  #    - "8081"
+  #  command: "npm start"
+
+networks:
+  mongonet:
+    #name: mongonet
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet:  10.0.0.0/27
+  cassnet:
+    #name: cassnet
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet:  10.0.0.32/29
+
+#volumes:
+#  db-data:
